@@ -76,8 +76,9 @@ Pages (a static page, deployed rarely)  --the page reads the branch every minute
    - `.github/workflows/monitor.yml`, `pages.yml`, `sync-upstream.yml`: copy them from
      [`templates/instance/`](templates/instance). They are a few lines each and call the reusable workflows of this
      repository.
-3. Settings: **Actions** enabled (forks start with workflows disabled); **Pages** source *GitHub Actions*;
-   Actions, workflow permissions *read and write*.
+3. Settings: **Actions** enabled (forks start with workflows disabled); **Issues** enabled (forks start with them off, and
+   the outage issues and the "Report a problem" link need them); **Pages** source *GitHub Actions*; Actions, workflow
+   permissions *read and write*.
 4. Run **Monitor** once from the Actions tab (it keeps itself going), then **Pages**.
 
 ### `status.config.json`

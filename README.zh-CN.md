@@ -64,7 +64,7 @@ Pages（静态页面，很少部署）--页面每分钟读取该分支----------
 2. 在 fork 里加入实例自己的文件（上游没有这些文件，所以同步不会冲突）：
    - `status.config.json`：复制 [`status.config.example.json`](status.config.example.json) 后修改（见下）。
    - `.github/workflows/monitor.yml`、`pages.yml`、`sync-upstream.yml`：从 [`templates/instance/`](templates/instance) 复制，各只有几行，调用本仓库的可复用工作流。
-3. 设置：启用 **Actions**（fork 默认禁用工作流）；**Pages** 来源选 *GitHub Actions*；Actions 的工作流权限选 *读写*。
+3. 设置：启用 **Actions**（fork 默认禁用工作流）；启用 **Issues**（fork 默认关闭，故障 Issue 和"Report a problem"链接都需要它）；**Pages** 来源选 *GitHub Actions*；Actions 的工作流权限选 *读写*。
 4. 在 Actions 页手动运行一次 **Monitor**（之后它会自己续上），再运行 **Pages**。
 
 ### `status.config.json`
