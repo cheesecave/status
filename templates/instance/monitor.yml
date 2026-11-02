@@ -1,0 +1,20 @@
+# Copy to .github/workflows/monitor.yml of the instance repository.
+name: Monitor
+on:
+  schedule:
+    - cron: "17 * * * *"   # only restarts the chain if it broke; the checks themselves are a loop in one job
+  workflow_dispatch:
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+permissions:
+  contents: write
+  issues: write
+  actions: write
+jobs:
+  monitor:
+    uses: ./.github/workflows/_monitor.yml
+    with:
+      caller: monitor.yml
+      pages: pages.yml
+    secrets: inherit

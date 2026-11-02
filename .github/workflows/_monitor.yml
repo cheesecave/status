@@ -1,0 +1,51 @@
+# Reusable: the checks. An instance calls it from its own `monitor.yml` (see templates/instance/).
+#
+# GitHub's own `schedule` trigger is best-effort (it fired about every 3 hours instead of every 5
+# minutes in the repository this was written for), so one run is one long job that checks in a loop and
+# publishes the data to the `status` branch itself. It stops before the 6 hour limit and starts the next
+# copy of the caller (queued behind it by the caller's concurrency group, so there is no gap). The
+# caller's hourly `schedule` only restarts the chain if it ever broke. No secret is needed: the default
+# token may push the data branch, open issues and dispatch workflows.
+name: Monitor (reusable)
+on:
+  workflow_call:
+    inputs:
+      config:
+        type: string
+        default: status.config.json
+      minutes:
+        type: number
+        default: 335
+      caller:
+        description: File name of the calling workflow, started again at the end of the run
+        type: string
+        default: monitor.yml
+      pages:
+        description: File name of the Pages workflow, started at the end of the run to refresh the fallback copy
+        type: string
+        default: pages.yml
+    secrets:
+      NOTIFY_WEBHOOK:
+        required: false
+jobs:
+  monitor:
+    name: Check in a loop
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      NOTIFY_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK }}
+      NOTIFY_STYLE: ${{ vars.NOTIFY_STYLE }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Check every interval of the config
+        run: python3 scripts/monitor.py --config "${{ inputs.config }}" --minutes "${{ inputs.minutes }}"
+      - name: Refresh the fallback copy of the page and start the next copy
+        if: ${{ !cancelled() }}
+        run: |
+          gh workflow run "${{ inputs.pages }}" --ref "${GITHUB_REF_NAME}" || true
+          gh workflow run "${{ inputs.caller }}" --ref "${GITHUB_REF_NAME}"

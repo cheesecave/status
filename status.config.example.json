@@ -1,0 +1,36 @@
+{
+  "name": "My Hub",
+  "base_url": "https://hub.example.org",
+  "description": "Public status of My Hub, a CheeseCave instance.",
+  "components": [
+    { "name": "Website", "group": "Web", "path": "/" },
+    { "name": "API", "group": "API", "path": "/api/version", "expect_json": { "api": "cheesecave" } },
+    { "name": "Repository listing", "group": "API", "path": "/api/models?limit=1" },
+
+    { "name": "File tree", "group": "Repositories", "path": "/api/datasets/OWNER/REPO/tree/main" },
+
+    { "name": "Git fetch", "group": "Git", "path": "/datasets/OWNER/REPO.git/info/refs?service=git-upload-pack", "expect_text": "git-upload-pack", "max_bytes": 4096 },
+    {
+      "name": "Git LFS",
+      "group": "Git",
+      "path": "/datasets/OWNER/REPO.git/info/lfs/objects/batch",
+      "method": "POST",
+      "body": "{\"operation\":\"download\",\"transfers\":[\"basic\"],\"objects\":[]}",
+      "headers": { "Content-Type": "application/vnd.git-lfs+json", "Accept": "application/vnd.git-lfs+json" },
+      "expect_json": { "transfer": "basic" }
+    },
+
+    { "name": "Small file download", "group": "Storage and downloads", "path": "/datasets/OWNER/REPO/resolve/main/README.md", "headers": { "Range": "bytes=0-1023" }, "expect_status": [200, 206], "max_bytes": 2048 },
+    {
+      "name": "Download speed",
+      "group": "Storage and downloads",
+      "path": "/datasets/OWNER/REPO/resolve/main/A_FILE_OF_AT_LEAST_1_MIB",
+      "headers": { "Range": "bytes=0-1048575" },
+      "expect_status": [200, 206],
+      "max_bytes": 1048576,
+      "speed": true,
+      "min_speed": 0.5,
+      "degraded_ms": 15000
+    }
+  ]
+}

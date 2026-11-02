@@ -1,0 +1,55 @@
+# Copy to .github/workflows/sync-upstream.yml of the instance repository (a fork of the upstream).
+#
+# Merges the upstream into the default branch every day. GitHub refuses that with the default token when
+# the upstream changed a file under .github/workflows/; add a secret SYNC_TOKEN (a fine-grained personal
+# access token or GitHub App token with Contents and Workflows write access to this repository) and the
+# same job works for those changes too. Without it, a failed sync opens one issue that says so.
+name: Sync upstream
+on:
+  schedule:
+    - cron: "37 3 * * *"
+  workflow_dispatch:
+concurrency:
+  group: sync-upstream
+permissions:
+  contents: write
+  issues: write
+  actions: write
+jobs:
+  sync:
+    if: ${{ github.event.repository.fork }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge the upstream
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+          HAS_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN != '' }}
+        run: |
+          set +e
+          out=$(gh api -X POST "repos/$GH_REPO/merge-upstream" -f branch="$BRANCH" 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ]; then
+            if [ "$HAS_SYNC_TOKEN" != "true" ]; then
+              hint="The default token cannot merge upstream changes of workflow files. Add a secret SYNC_TOKEN (see the comment at the top of sync-upstream.yml), or merge by hand."
+            else
+              hint="The merge may have a conflict: merge the upstream by hand."
+            fi
+            if [ "$(gh issue list --label upstream-sync --state open --json number --jq length)" = "0" ]; then
+              gh label create upstream-sync --color fbca04 2>/dev/null
+              gh issue create --label upstream-sync --title "Syncing the upstream failed" --body "$hint
+
+          Output of the API:
+
+          \`\`\`
+          $out
+          \`\`\`"
+            fi
+            exit 1
+          fi
+          for n in $(gh issue list --label upstream-sync --state open --json number --jq '.[].number'); do gh issue close "$n" --comment "The upstream was merged."; done
+          merge_type=$(echo "$out" | python3 -c "import sys,json; print(json.load(sys.stdin).get('merge_type',''))")
+          # events of the default token do not start other workflows: redeploy the page by hand
+          if [ "$merge_type" != "none" ]; then gh workflow run pages.yml --ref "$BRANCH" || true; fi
