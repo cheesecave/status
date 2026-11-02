@@ -65,6 +65,16 @@ class Config(unittest.TestCase):
             with self.assertRaises(ValueError):
                 s.load_config(self.write(bad))
 
+    def test_links_are_validated(self):
+        ok = {"name": "n", "base_url": "https://h", "components": [{"name": "a", "path": "/"}]}
+        good = s.load_config(self.write({**ok, "links": {"header": [{"label": "Site", "url": "https://h"}], "footer": []}}))
+        self.assertEqual(good["links"]["header"][0]["label"], "Site")
+        for bad in ({"links": []}, {"links": {"side": []}}, {"links": {"header": "x"}},
+                    {"links": {"header": [{"label": "x", "url": "javascript:alert(1)"}]}},
+                    {"links": {"footer": [{"url": "https://x"}]}}):
+            with self.assertRaises(ValueError):
+                s.load_config(self.write({**ok, **bad}))
+
     def test_component_url_and_groups_keep_config_order(self):
         self.assertEqual(s.component_url(CFG, CFG["components"][0]), "https://hub.example/")
         self.assertEqual(s.component_url(CFG, CFG["components"][2]), "https://files.example/x")
@@ -253,6 +263,11 @@ class PagesConfig(unittest.TestCase):
         c = s.pages_config(CFG, "acme/status")
         self.assertEqual(c["data_base"], "https://raw.githubusercontent.com/acme/status/status/")
         self.assertEqual((c["name"], c["home_url"], c["fallback_base"]), ("Hub", "https://hub.example", ""))
+        self.assertEqual(c["links"], {"header": [{"label": "Go to Hub", "url": "https://hub.example"}], "footer": []})
+
+    def test_configured_links_replace_the_default(self):
+        cfg = {**CFG, "links": {"footer": [{"label": "Source", "url": "https://github.com/x/y"}]}}
+        self.assertEqual(s.pages_config(cfg, "a/b")["links"], {"header": [], "footer": [{"label": "Source", "url": "https://github.com/x/y"}]})
 
 
 class Branch(unittest.TestCase):

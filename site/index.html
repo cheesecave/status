@@ -96,6 +96,9 @@ details.past summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .incident .meta { color: var(--muted); }
 footer { margin-top: 16px; color: var(--muted); font-size: 12px; }
 footer p { margin: 3px 0; }
+.flinks { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+.flinks a { color: var(--accent); text-decoration: none; }
+.flinks a:hover { text-decoration: underline; }
 .legend { display: flex; flex-wrap: wrap; gap: 3px 14px; }
 .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--none); }
 .legend .g::before { background: var(--green); } .legend .y::before { background: var(--yellow); } .legend .r::before { background: var(--red); }
@@ -120,7 +123,7 @@ footer p { margin: 3px 0; }
         <button type="button" data-theme-choice="light">Light</button>
         <button type="button" data-theme-choice="dark">Dark</button>
       </div>
-      <a id="home" class="back" href="#" hidden>Go to the site</a>
+      <span id="headerLinks" class="tools"></span>
     </div>
   </header>
   <div id="banner" class="banner">Loading status…</div>
@@ -141,6 +144,7 @@ footer p { margin: 3px 0; }
   <details class="past" id="past" hidden><summary id="pastTitle">Past incidents</summary><div id="incidents"></div></details>
   <footer>
     <div class="legend" id="legend"></div>
+    <p id="footerLinks" class="flinks" hidden></p>
     <p id="updated"></p>
     <p id="about"></p>
   </footer>
@@ -151,7 +155,7 @@ footer p { margin: 3px 0; }
   var LABEL = { up: "Operational", degraded: "Degraded", down: "Outage", unknown: "No data" };
   var RANK = { unknown: 0, up: 1, degraded: 2, down: 3 };
   var RANGE_LABEL = { "24h": "24 hours", "7d": "7 days", "30d": "30 days", "90d": "90 days", "1y": "1 year" };
-  var cfg = { name: "", home_url: "", data_base: "", fallback_base: "", refresh_seconds: 60 };
+  var cfg = { name: "", home_url: "", links: null, data_base: "", fallback_base: "", refresh_seconds: 60 };
   var status = null, views = {}, refreshFailed = false;
   var ui = { range: "90d", metric: "avail", open: null };   // open: null = automatic, else an object of group name -> bool
 
@@ -288,6 +292,20 @@ footer p { margin: 3px 0; }
     return sp.length ? "avg " + fmtSpeed(sp.reduce(function (a, b) { return a + b; }, 0) / sp.length) + " · min " + fmtSpeed(Math.min.apply(null, sp)) : "no data";
   }
 
+  // ---- links: the buttons of the header and the footer come from the config (links.header, links.footer)
+  function safeUrl(u) { return typeof u === "string" && /^https?:\/\//.test(u); }
+  function renderLinks(name, home) {
+    var links = cfg.links || { header: home ? [{ label: "Go to " + (name || "the site"), url: home }] : [], footer: [] };
+    var head = $("headerLinks"); head.textContent = "";
+    (links.header || []).filter(function (l) { return l && l.label && safeUrl(l.url); }).forEach(function (l) {
+      var a = el("a", "back", l.label); a.href = l.url; a.rel = "noopener"; head.appendChild(a);
+    });
+    var foot = $("footerLinks"); foot.textContent = "";
+    var items = (links.footer || []).filter(function (l) { return l && l.label && safeUrl(l.url); });
+    items.forEach(function (l) { var a = el("a", "", l.label); a.href = l.url; a.rel = "noopener"; foot.appendChild(a); });
+    foot.hidden = !items.length;
+  }
+
   // ---- rendering
   function overall(cs, stale) {
     var states = cs.map(function (c) { return c.state; });
@@ -309,8 +327,7 @@ footer p { margin: 3px 0; }
     var name = (d.instance && d.instance.name) || cfg.name;
     if (name) { $("title").textContent = name + " Status"; document.title = name + " Status"; }
     $("desc").textContent = (d.instance && d.instance.description) || "";
-    var home = (d.instance && d.instance.home_url) || cfg.home_url;
-    if (home) { $("home").href = home; $("home").textContent = "Go to " + (name || "the site"); $("home").hidden = false; }
+    renderLinks(name, (d.instance && d.instance.home_url) || cfg.home_url);
     var interval = d.interval_seconds || 300, staleMin = Math.max(15, Math.ceil(3 * interval / 60));
     var newest = cs.reduce(function (a, c) { return c.checked_at && (!a || c.checked_at > a) ? c.checked_at : a; }, null);
     var stale = !!newest && (now - new Date(newest)) > staleMin * 60000;

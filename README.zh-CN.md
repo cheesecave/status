@@ -4,6 +4,34 @@
 显示各服务当前状态、24 小时到 1 年的历史、延迟与下载速度，以及故障事件。本仓库不绑定任何实例，一个实例的全部信息都在它自己的
 `status.config.json` 里，实例仓库就是本仓库的 fork。[English](README.md)
 
+## 长什么样
+
+*下面的图是真实页面显示一个虚构实例（"Example Hub"）的演示数据；可以用 `docs/screenshots.py` 重新生成。*
+
+**分组折叠：所有服务一屏看完，带 90 天历史。** 每格是一天，悬停可看具体数字。
+
+![概览，分组折叠](docs/images/overview.png)
+
+**展开分组查看各个服务。** 有问题的分组会自动展开。
+
+![分组展开，以及一个色块的悬停提示](docs/images/expanded.png)
+
+**延迟**：线是响应时间的中位数，阴影是最慢的 5%。
+
+![延迟视角](docs/images/latency.png)
+
+**下载速度**：1 MiB 范围下载的速度，这里是最近 7 天。
+
+![下载速度视角](docs/images/speed.png)
+
+**故障时**：横幅、进行中的事件（会自动开关的 GitHub Issue），以及最近 24 小时里失败的检查。
+
+![最近 24 小时内的一次故障](docs/images/outage.png)
+
+**深色主题**（也可选亮色，或跟随系统）以及**手机**：
+
+<img src="docs/images/dark.png" alt="深色主题" width="620"> <img src="docs/images/mobile.png" alt="手机上" width="200">
+
 ## 功能
 
 - **时间范围**：24 小时、7 天、30 天、90 天、1 年，每个范围约 90 格（每格 15 分钟、2 小时、6 小时、1 天、1 周）。
@@ -45,6 +73,7 @@ Pages（静态页面，很少部署）--页面每分钟读取该分支----------
 |---|---|
 | `name`、`base_url` | 页头显示的名称；`path` 相对的地址 |
 | `description` | 标题下的一行说明（可选） |
+| `links.header`、`links.footer` | 右上角的按钮和页面下方的链接，各是 `{"label", "url"}` 的列表（http 或 https）。不配置 `links` 时，页头有一个指向 `base_url` 的"Go to *名称*"按钮；配置了就只显示你列出的（空列表则一个都不显示） |
 | `components[].name` | 页面上显示的名称，不能重复 |
 | `components[].group` | 折叠分组（默认 `Services`） |
 | `components[].path` 或 `.url` | 二选一，且只能有一个 |
@@ -61,6 +90,23 @@ CheeseCave 实例建议监控的项目（都无需登录；把 `OWNER/REPO` 换�
 （返回 `{"api": "cheesecave", …}`）；`/api/models?limit=1`（数据库）；`/api/{type}s/OWNER/REPO/tree/main`（版本存储）；
 `/{type}s/OWNER/REPO.git/info/refs?service=git-upload-pack`（git fetch）；LFS 批量接口（`POST`）；对小文件的 `Range` 请求（会跟随跳转到对象存储）；
 对大文件 1 MiB 的 `Range` 请求（用于下载速度）。
+
+### 链接（按钮）
+
+页面跳转到哪里由你在 `status.config.json` 里决定：
+
+```json
+"links": {
+  "header": [{ "label": "My Hub", "url": "https://hub.example.org" }],
+  "footer": [
+    { "label": "Report a problem", "url": "https://github.com/OWNER/REPO/issues" },
+    { "label": "Powered by CheeseCave", "url": "https://github.com/cheesecave" }
+  ]
+}
+```
+
+`header` 里的链接显示为右上角的按钮（主题切换旁边），`footer` 里的链接列在服务列表下方。适合放：实例本身、文档、反馈问题的入口、状态页本身的仓库。
+只接受 `http` 和 `https` 地址（监控启动时会检查配置）。
 
 ### Secret 与变量（都是可选的）
 
@@ -93,6 +139,8 @@ python3 -I scripts/test_statuslib.py
 python3 -I scripts/test_e2e.py        # 对本地服务器和本地裸仓库跑完整流程
 python3 scripts/monitor.py --config status.config.json --minutes 1 --remote /path/to/a/bare/repo
 python3 scripts/build_pages.py --out public --repo OWNER/REPO               # 然后用静态服务器打开 public/
+python3 scripts/demo_data.py --out demo --scenario outage                   # 用虚构数据生成演示站（或 `normal`）
+python3 docs/screenshots.py            # 重新生成本文的图片（需要 Playwright；必要时设 CHROMIUM=/浏览器路径）
 ```
 
 ## 许可证

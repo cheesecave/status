@@ -2,6 +2,13 @@
   "name": "My Hub",
   "base_url": "https://hub.example.org",
   "description": "Public status of My Hub, a CheeseCave instance.",
+  "links": {
+    "header": [{ "label": "My Hub", "url": "https://hub.example.org" }],
+    "footer": [
+      { "label": "Report a problem", "url": "https://github.com/OWNER/REPO/issues" },
+      { "label": "Powered by CheeseCave", "url": "https://github.com/cheesecave" }
+    ]
+  },
   "components": [
     { "name": "Website", "group": "Web", "path": "/" },
     { "name": "API", "group": "API", "path": "/api/version", "expect_json": { "api": "cheesecave" } },

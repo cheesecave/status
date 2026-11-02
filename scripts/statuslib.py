@@ -48,6 +48,16 @@ def load_config(path):
     for comp in cfg["components"]:
         if ("path" in comp) == ("url" in comp):
             raise ValueError(f"{path}: component '{comp['name']}' needs exactly one of 'path' and 'url'")
+    if "links" in cfg:
+        links = cfg["links"]
+        if not isinstance(links, dict) or set(links) - {"header", "footer"}:
+            raise ValueError(f"{path}: 'links' must be an object with 'header' and/or 'footer'")
+        for place, items in links.items():
+            if not isinstance(items, list):
+                raise ValueError(f"{path}: links.{place} must be a list")
+            for item in items:
+                if not (isinstance(item, dict) and item.get("label") and str(item.get("url", "")).startswith(("https://", "http://"))):
+                    raise ValueError(f"{path}: every link in links.{place} needs a 'label' and an http(s) 'url'")
     return cfg
 
 
@@ -327,10 +337,14 @@ def tick(cfg, data_dir, now, gh, fetch=http_fetch, notify=None):
 
 
 def pages_config(cfg, repo):
-    """What the page needs to know about the instance and where the data lives (written to config.json)."""
+    """What the page needs to know about the instance and where the data lives (written to config.json).
+
+    `links` are the buttons of the page: by default one in the header that leads to the instance itself."""
+    links = cfg.get("links", {"header": [{"label": f"Go to {cfg['name']}", "url": cfg["base_url"]}]})
     return {
         "name": cfg["name"],
         "home_url": cfg["base_url"],
+        "links": {"header": links.get("header", []), "footer": links.get("footer", [])},
         "data_base": f"https://raw.githubusercontent.com/{repo}/status/",
         "fallback_base": "",
         "refresh_seconds": 60,

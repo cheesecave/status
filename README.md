@@ -5,6 +5,36 @@ run by GitHub Actions: the state of every service now, 24 hours to a year of his
 speed, and the incidents. Nothing in this repository names an instance: everything about one lives in its
 own `status.config.json`, and an instance is a fork of this repository. [简体中文](README.zh-CN.md)
 
+## What it looks like
+
+*The pictures are the real page showing demo data of a made-up instance ("Example Hub"); regenerate them with
+`docs/screenshots.py`.*
+
+**Folded groups: every service on one screen, with 90 days of history.** Each bar is one day; hover for the numbers.
+
+![Overview, groups folded](docs/images/overview.png)
+
+**Open a group for its services.** A group with a problem opens by itself.
+
+![Groups expanded, with the tooltip of a bar](docs/images/expanded.png)
+
+**Latency**: the line is the median response time, the shade the slowest 5 %.
+
+![Latency view](docs/images/latency.png)
+
+**Download speed** of a 1 MiB ranged download, here over the last 7 days.
+
+![Download speed view](docs/images/speed.png)
+
+**An outage**: the banner, the open incident (a GitHub issue that is opened and closed by itself), and the failed
+checks of the last 24 hours.
+
+![An outage in the last 24 hours](docs/images/outage.png)
+
+**Dark theme** (or light, or follow the system) and **phones**:
+
+<img src="docs/images/dark.png" alt="Dark theme" width="620"> <img src="docs/images/mobile.png" alt="On a phone" width="200">
+
 ## What you get
 
 - **Time ranges**: 24 h, 7 d, 30 d, 90 d and 1 y, about 90 bars each (15 min, 2 h, 6 h, 1 day, 1 week per bar).
@@ -56,6 +86,7 @@ Pages (a static page, deployed rarely)  --the page reads the branch every minute
 |---|---|
 | `name`, `base_url` | shown in the header; the address that `path` is relative to |
 | `description` | one line under the title (optional) |
+| `links.header`, `links.footer` | the buttons at the top right and the links under the page: lists of `{"label", "url"}` (http or https). Without `links` the header gets one button, "Go to *name*", that leads to `base_url`; with `links` only what you list is shown (an empty list shows none) |
 | `components[].name` | shown on the page; unique |
 | `components[].group` | the folding group (default `Services`) |
 | `components[].path` or `.url` | exactly one of them |
@@ -74,6 +105,24 @@ repository of yours that has a file of at least 1 MiB): the home page; `/api/ver
 store); `/{type}s/OWNER/REPO.git/info/refs?service=git-upload-pack` (git fetch); the LFS batch endpoint (`POST`);
 a `Range` request for a small file (follows the redirect to the object storage); a 1 MiB `Range` request for the
 download speed.
+
+### Links (buttons)
+
+Where the page leads to is yours to choose, in `status.config.json`:
+
+```json
+"links": {
+  "header": [{ "label": "My Hub", "url": "https://hub.example.org" }],
+  "footer": [
+    { "label": "Report a problem", "url": "https://github.com/OWNER/REPO/issues" },
+    { "label": "Powered by CheeseCave", "url": "https://github.com/cheesecave" }
+  ]
+}
+```
+
+`header` links are the buttons at the top right (next to the theme switch), `footer` links are listed under the
+services. Good candidates: the instance itself, its documentation, a way to report a problem, the repository of this
+page. Only `http` and `https` addresses are accepted (the config is checked when the monitor starts).
 
 ### Secrets and variables (all optional)
 
@@ -112,6 +161,8 @@ python3 -I scripts/test_statuslib.py
 python3 -I scripts/test_e2e.py        # the whole chain against a local server and a local bare repository
 python3 scripts/monitor.py --config status.config.json --minutes 1 --remote /path/to/a/bare/repo
 python3 scripts/build_pages.py --out public --repo OWNER/REPO               # then serve `public/`
+python3 scripts/demo_data.py --out demo --scenario outage                   # a demo site with made-up data (or `normal`)
+python3 docs/screenshots.py            # the pictures of this README (needs Playwright; CHROMIUM=/path/to/browser if needed)
 ```
 
 ## License
